@@ -23,16 +23,16 @@ init(Options) ->
     DBPassword  = proplists:get_value(db_password, Options, ""),
     DBDatabase  = proplists:get_value(db_database, Options, "test"),
     DBConfigure = proplists:get_value(db_configure, Options, []),
-    pgsql:connect(DBHost, DBUsername, DBPassword, 
+    epgsql:connect(DBHost, DBUsername, DBPassword,
         [{port, DBPort}, {database, DBDatabase} | DBConfigure]).
 
 terminate(Conn) ->
-    pgsql:close(Conn).
+    epgsql:close(Conn).
 
 find_by_sql(Conn, Type, Sql, Parameters) when is_atom(Type), is_list(Sql), is_list(Parameters) ->
     case boss_record_lib:ensure_loaded(Type) of
         true ->
-            Res = pgsql:equery(Conn, Sql, Parameters),
+            Res = epgsql:equery(Conn, Sql, Parameters),
             case Res of
                 {ok, Columns, ResultRows} ->
                     lists:map(fun(Row) ->
@@ -47,7 +47,7 @@ find_by_sql(Conn, Type, Sql, Parameters) when is_atom(Type), is_list(Sql), is_li
 
 find(Conn, Id) when is_list(Id) ->
     {Type, TableName, IdColumn, TableId} = boss_sql_lib:infer_type_from_id(Id),
-    Res = pgsql:equery(Conn, ["SELECT * FROM ", TableName, " WHERE ", IdColumn, " = $1"], [TableId]),
+    Res = epgsql:equery(Conn, ["SELECT * FROM ", TableName, " WHERE ", IdColumn, " = $1"], [TableId]),
     case Res of
         {ok, _Columns, []} ->
             undefined;
@@ -60,16 +60,16 @@ find(Conn, Id) when is_list(Id) ->
             {error, Reason}
     end.
 
-find(Conn, Type, Conditions, Max, Skip, Sort, SortOrder) when is_atom(Type), 
-							      is_list(Conditions), 
-                                                              is_integer(Max) orelse Max =:= all, 
-							      is_integer(Skip), 
-                                                              is_atom(Sort), 
+find(Conn, Type, Conditions, Max, Skip, Sort, SortOrder) when is_atom(Type),
+							      is_list(Conditions),
+                                                              is_integer(Max) orelse Max =:= all,
+							      is_integer(Skip),
+                                                              is_atom(Sort),
 							      is_atom(SortOrder) ->
     case boss_record_lib:ensure_loaded(Type) of
         true ->
             Query = build_select_query(Type, Conditions, Max, Skip, Sort, SortOrder),
-            Res = pgsql:equery(Conn, Query, []),
+            Res = epgsql:equery(Conn, Query, []),
             case Res of
                 {ok, Columns, ResultRows} ->
                     FilteredRows = case {Max, Skip} of
@@ -84,31 +84,31 @@ find(Conn, Type, Conditions, Max, Skip, Sort, SortOrder) when is_atom(Type),
                 {error, Reason} ->
                     {error, Reason}
             end;
-        false -> 
+        false ->
 	    {error, {module_not_loaded, Type}}
     end.
 
 count(Conn, Type, Conditions) ->
     ConditionClause = build_conditions(Type, Conditions),
     TableName = boss_record_lib:database_table(Type),
-    {ok, _, [{Count}]} = pgsql:equery(Conn, 
+    {ok, _, [{Count}]} = epgsql:equery(Conn,
         ["SELECT COUNT(*) AS count FROM ", TableName, " WHERE ", ConditionClause]),
     Count.
 
 counter(Conn, Id) when is_list(Id) ->
-    Res = pgsql:equery(Conn, "SELECT value FROM counters WHERE name = $1", [Id]),
+    Res = epgsql:equery(Conn, "SELECT value FROM counters WHERE name = $1", [Id]),
     case Res of
         {ok, _, [{Value}]} -> Value;
         {error, _Reason} -> 0
     end.
 
 incr(Conn, Id, Count) ->
-    Res = pgsql:equery(Conn, "UPDATE counters SET value = value + $1 WHERE name = $2 RETURNING value", 
+    Res = epgsql:equery(Conn, "UPDATE counters SET value = value + $1 WHERE name = $2 RETURNING value",
         [Count, Id]),
     case Res of
         {ok, _, _, [{Value}]} -> Value;
-        {error, _Reason} -> 
-            Res1 = pgsql:equery(Conn, "INSERT INTO counters (name, value) VALUES ($1, $2) RETURNING value", 
+        {error, _Reason} ->
+            Res1 = epgsql:equery(Conn, "INSERT INTO counters (name, value) VALUES ($1, $2) RETURNING value",
                 [Id, Count]),
             case Res1 of
                 {ok, _, _, [{Value}]} -> Value;
@@ -118,10 +118,10 @@ incr(Conn, Id, Count) ->
 
 delete(Conn, Id) when is_list(Id) ->
     {_, TableName, IdColumn, TableId} = boss_sql_lib:infer_type_from_id(Id),
-    Res = pgsql:equery(Conn, ["DELETE FROM ", TableName, " WHERE ", IdColumn, " = $1"], [TableId]),
+    Res = epgsql:equery(Conn, ["DELETE FROM ", TableName, " WHERE ", IdColumn, " = $1"], [TableId]),
     case Res of
-        {ok, _Count} -> 
-            pgsql:equery(Conn, "DELETE FROM counters WHERE name = $1", [Id]),
+        {ok, _Count} ->
+            epgsql:equery(Conn, "DELETE FROM counters WHERE name = $1", [Id]),
             ok;
         {error, Reason} -> {error, Reason}
     end.
@@ -134,7 +134,7 @@ save_record(Conn, Record) when is_tuple(Record) ->
             Record1		= maybe_populate_id_value(Record),
             Type		= element(1, Record1),
             {Query,Params}	= build_insert_query(Record1),
-	    Res			= pgsql:equery(Conn, Query, Params),
+	    Res			= epgsql:equery(Conn, Query, Params),
             case Res of
                 {ok, _, _, [{Id}]} ->
                     {ok, Record1:set(id, lists:concat([Type, "-", id_value_to_string(Id)]))};
@@ -142,7 +142,7 @@ save_record(Conn, Record) when is_tuple(Record) ->
             end;
         Defined when is_list(Defined) ->
             {Query,Params} = build_update_query(Record),
-            Res = pgsql:equery(Conn, Query, Params),
+            Res = epgsql:equery(Conn, Query, Params),
             case Res of
                 {ok, _}         -> {ok, Record};
                 {error, Reason} -> {error, Reason}
@@ -150,28 +150,28 @@ save_record(Conn, Record) when is_tuple(Record) ->
     end.
 
 push(Conn, Depth) ->
-    case Depth of 0 -> pgsql:squery(Conn, "BEGIN"); _ -> ok end,
-    pgsql:squery(Conn, "SAVEPOINT savepoint"++integer_to_list(Depth)).
+    case Depth of 0 -> epgsql:squery(Conn, "BEGIN"); _ -> ok end,
+    epgsql:squery(Conn, "SAVEPOINT savepoint"++integer_to_list(Depth)).
 
 pop(Conn, Depth) ->
-    pgsql:squery(Conn, "ROLLBACK TO SAVEPOINT savepoint"++integer_to_list(Depth - 1)).
+    epgsql:squery(Conn, "ROLLBACK TO SAVEPOINT savepoint"++integer_to_list(Depth - 1)).
 
 dump(_Conn) -> "".
 
 execute(Conn, Commands) ->
-    pgsql:squery(Conn, Commands).
+    epgsql:squery(Conn, Commands).
 
 execute(Conn, Commands, Params) ->
-    pgsql:equery(Conn, Commands, Params).
+    epgsql:equery(Conn, Commands, Params).
 
 transaction(Conn, TransactionFun) ->
-    case pgsql:with_transaction(Conn, fun(_C) -> TransactionFun() end) of
+    case epgsql:with_transaction(Conn, fun(_C) -> TransactionFun() end) of
         {rollback, Reason} -> {aborted, Reason};
         Other -> {atomic, Other}
     end.
 
 get_migrations_table(Conn) ->
-    Res = pgsql:equery(Conn, "SELECT * FROM schema_migrations", []),
+    Res = epgsql:equery(Conn, "SELECT * FROM schema_migrations", []),
     case Res of
         {ok, _Columns, ResultRows} ->
             ResultRows;
@@ -180,7 +180,7 @@ get_migrations_table(Conn) ->
     end.
 
 migration_done(Conn, Tag, up) ->
-    Res = pgsql:equery(Conn, "INSERT INTO schema_migrations (version, migrated_at) values ($1, current_timestamp)",
+    Res = epgsql:equery(Conn, "INSERT INTO schema_migrations (version, migrated_at) values ($1, current_timestamp)",
                        [atom_to_list(Tag)]),
     case Res of
         {ok, _ResultRows} ->
@@ -189,7 +189,7 @@ migration_done(Conn, Tag, up) ->
             {error, Reason}
     end;
 migration_done(Conn, Tag, down) ->
-    Res = pgsql:equery(Conn, "DELETE FROM schema_migrations WHERE version = $1", [atom_to_list(Tag)]),
+    Res = epgsql:equery(Conn, "DELETE FROM schema_migrations WHERE version = $1", [atom_to_list(Tag)]),
     case Res of
         {ok, _Result} ->
             ok;
@@ -211,7 +211,7 @@ maybe_populate_id_value(Record) ->
 
 -type keytype() ::uuid|id.
 -spec(maybe_populate_id_value(tuple(), uuid|id) -> tuple()).
-maybe_populate_id_value(Record, uuid) ->    
+maybe_populate_id_value(Record, uuid) ->
     Type = element(1, Record),
     Record:set(id, lists:concat([Type, "-", uuid:to_string(uuid:uuid4())]));
 maybe_populate_id_value(Record, id) ->
@@ -226,7 +226,7 @@ activate_record(Record, Metadata, Type) ->
     AttributeColumns	= boss_record_lib:database_columns(Type),
 
     RetypedForeignKeys	= boss_sql_lib:get_retyped_foreign_keys(Type),
-				  
+
     apply(Type, new, lists:map(fun
                 (id) ->
                     DBColumn = proplists:get_value('id', AttributeColumns),
@@ -239,7 +239,7 @@ activate_record(Record, Metadata, Type) ->
                     case element(Index, Record) of
                         undefined -> undefined;
                         null -> undefined;
-                        Val -> 
+                        Val ->
                             boss_sql_lib:convert_possible_foreign_key(RetypedForeignKeys, Type, Key, Val, AttrType)
                     end
             end, boss_record_lib:attribute_names(Type))).
@@ -271,9 +271,9 @@ build_insert_query(Record) ->
     build_insert_sql(TableName, Attributes, Values, Params).
 
 
--spec(build_insert_sql(nonempty_string(), 
-		       [nonempty_string(),...], 
-		       [sql_param_value(),...], 
+-spec(build_insert_sql(nonempty_string(),
+		       [nonempty_string(),...],
+		       [sql_param_value(),...],
 		       [nonempty_string(),...]) ->
 	     {iolist(), [sql_param_value()]}).
 build_insert_sql(TableName, Attributes, Values, Params) ->
@@ -301,7 +301,7 @@ make_insert_attributes(Record, Type) ->
 		    ({A, V}, {Attrs, Vals}) ->
 			DBColumn		= proplists:get_value(A, AttributeColumns),
 			Value                   = make_value(Type, A, V),
-			{[DBColumn|Attrs], 
+			{[DBColumn|Attrs],
 			 [Value|Vals]}
                 end, {[], []}, Record:attributes()).
 
@@ -323,7 +323,7 @@ build_update_query(Record) ->
     AttributeColumns = Record:database_columns(),
     {Attributes, Values} = lists:foldl(fun
             ({id, _}, Acc) -> Acc;
-            ({A, V}, {Attrs, Vals}) -> 
+            ({A, V}, {Attrs, Vals}) ->
                 DBColumn = proplists:get_value(A, AttributeColumns),
                 Value = case {boss_sql_lib:is_foreign_key(Type, A), V =/= undefined} of
                     {true, true} ->
@@ -342,7 +342,7 @@ build_update_query(Record) ->
 
 build_select_query(Type, Conditions, Max, Skip, Sort, SortOrder) ->
     TableName = boss_record_lib:database_table(Type),
-    ["SELECT * FROM ", TableName, 
+    ["SELECT * FROM ", TableName,
         " WHERE ", build_conditions(Type, Conditions),
         " ORDER BY ", atom_to_list(Sort), " ", sort_order_sql(SortOrder),
         case Max of all -> ""; _ -> " LIMIT " ++ integer_to_list(Max) ++
@@ -450,7 +450,7 @@ pack_datetime({Date, {Y, M, S}}) when is_float(S) ->
     pack_datetime({Date, {Y, M, erlang:round(S)}});
 pack_datetime(DateTime) ->
     "TIMESTAMP " ++dh_date:format("'Y-m-dTH:i:s'",DateTime).
-    
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -480,7 +480,7 @@ pack_value(false) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 table_exists(Conn, TableName) when is_atom(TableName) ->
-    Res = pgsql:squery(Conn, ["SELECT COUNT(tablename) FROM PG_TABLES WHERE SCHEMANAME='public' AND TABLENAME = '", atom_to_list(TableName), "'"]),
+    Res = epgsql:squery(Conn, ["SELECT COUNT(tablename) FROM PG_TABLES WHERE SCHEMANAME='public' AND TABLENAME = '", atom_to_list(TableName), "'"]),
     case Res of
         {ok, _, [{Count}]} ->
 	    list_to_integer(binary_to_list(Count)) > 0;
@@ -489,7 +489,7 @@ table_exists(Conn, TableName) when is_atom(TableName) ->
     end.
 
 create_table(Conn, TableName, TableDefinition) when is_atom(TableName) ->
-    Res = pgsql:squery(Conn, ["CREATE TABLE ", atom_to_list(TableName), " ( ", tabledefinition_to_sql(TableDefinition), " )"]),
+    Res = epgsql:squery(Conn, ["CREATE TABLE ", atom_to_list(TableName), " ( ", tabledefinition_to_sql(TableDefinition), " )"]),
     case Res of
         {ok, [], []} ->
             ok;
