@@ -16,7 +16,7 @@ stop(Conn) ->
 
 init(Options) ->
     CacheServerOpts = proplists:get_value(cache_servers, Options, []),
-    redo:start_link(undefined, CacheServerOpts).
+    redo:start_link(CacheServerOpts).
 
 terminate(Conn) ->
     stop(Conn).

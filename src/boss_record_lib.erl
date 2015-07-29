@@ -115,6 +115,7 @@ ensure_loaded(Module) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 convert_value_to_type(Val, undefined) ->
+    io:format("Convert to type val: ~p~n",[Val]),
     Val;
 convert_value_to_type(Val, integer) when is_integer(Val) ->
     Val;

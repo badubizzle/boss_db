@@ -197,8 +197,10 @@ trick_out_forms(LeadingForms, Forms, ModuleName, Parameters, TokenInfo) ->
 
     GeneratedExportForms              = export_forms(GeneratedFunctionList),
 
-    LeadingForms ++ GeneratedExportForms ++ UserForms ++ 
-        override_functions(GeneratedForms, UserFunctionList).
+    Ret = LeadingForms ++ GeneratedExportForms ++ UserForms ++
+        override_functions(GeneratedForms, UserFunctionList),
+    io:format("Ret ~p~n",[Ret]),
+    Ret.
 
 make_counters(Attributes) ->
     lists:foldl(

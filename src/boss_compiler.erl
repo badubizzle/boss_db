@@ -211,7 +211,9 @@ parse_tokens(Tokens, FileName) ->
     parse_tokens(Tokens, [], [], [], FileName).
 
 parse_tokens([], _, FormAcc, ErrorAcc, _) ->
-    {lists:reverse(FormAcc), lists:reverse(ErrorAcc)};
+    R= {lists:reverse(FormAcc), lists:reverse(ErrorAcc)},
+    io:format("Parsed tokens: ~p~n",[R]),
+    R;
 parse_tokens([{dot, _}=Token|Rest], TokenAcc, FormAcc, ErrorAcc, FileName) ->
     case erl_parse:parse_form(lists:reverse([Token|TokenAcc])) of
         {ok, {attribute, _, file, {NewFileName, _Line}} = AbsForm} ->
