@@ -27,6 +27,7 @@ get(Prefix, Key) ->
 delete(Prefix, Key) ->
     boss_pool:call(?POOLNAME, {delete, Prefix, Key}).
 
+
 %% from mochiweb project, mochihex:to_hex/1
 %% @spec to_hex(integer | iolist()) -> string()
 %% @doc Convert an iolist to a hexadecimal string.

@@ -23,17 +23,17 @@ terminate(Conn) ->
 
 get(Conn, Prefix, Key) ->
     case redo:cmd(Conn,["GET", term_to_key(Prefix, Key)]) of
-        Bin ->
+        undefined ->
+            undefined;
+        Bin -> 
             binary_to_term(Bin)
     end.
 
 set(Conn, Prefix, Key, Val, TTL) ->
-    _ = redo:cmd(Conn,["SETEX",term_to_key(Prefix, Key), TTL, term_to_binary(Val)]),
-    ok.
+    redo:cmd(Conn,["SETEX",term_to_key(Prefix, Key), TTL, term_to_binary(Val)]).
 
 delete(Conn, Prefix, Key) ->
-    _ = redo:cmd(Conn, ["DEL", term_to_key(Prefix, Key)]),
-    ok.
+    redo:cmd(Conn, ["DELETE", term_to_key(Prefix, Key)]).
 
 % internal
 term_to_key(Prefix, Term) ->

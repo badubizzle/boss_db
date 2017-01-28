@@ -19,7 +19,6 @@ start_link(Args) ->
 
 init(Options) ->
     AdapterName = proplists:get_value(adapter, Options, memcached_bin),
-<<<<<<< HEAD
     Adapter	= list_to_atom(lists:concat(["boss_cache_adapter_", AdapterName])),
     Conn= case Adapter:init(Options) of
               {ok, _C} ->
@@ -27,20 +26,16 @@ init(Options) ->
               {error,{already_started,_C}}->
                   _C
           end,
-=======
-    Adapter    = list_to_atom(lists:concat(["boss_cache_adapter_", AdapterName])),
-    {ok, Conn}    = Adapter:init(Options),
->>>>>>> ErlyORM/master
     {ok, #state{ adapter = Adapter, connection = Conn }}.
 
-handle_call({get, Prefix, Key},
-        _From, State = #state{adapter=Adapter, connection = Conn}) ->
+handle_call({get, Prefix, Key}, 
+	    _From, State = #state{adapter=Adapter, connection = Conn}) ->
     {reply, Adapter:get(Conn, Prefix, Key), State};
 handle_call({set, Prefix, Key, Value, TTL},
-        _From, State = #state{adapter=Adapter, connection = Conn}) ->
+	    _From, State = #state{adapter=Adapter, connection = Conn}) ->
     {reply, Adapter:set(Conn, Prefix, Key, Value, TTL), State};
-handle_call({delete, Prefix, Key},
-        _From, State = #state{adapter=Adapter, connection = Conn}) ->
+handle_call({delete, Prefix, Key}, 
+	    _From, State = #state{adapter=Adapter, connection = Conn}) ->
     {reply, Adapter:delete(Conn, Prefix, Key), State}.
 
 handle_cast(_Request, State) ->
