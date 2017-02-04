@@ -240,7 +240,7 @@ activate_record(Record, Metadata, Type) ->
                         undefined -> undefined;
                         null -> undefined;
                         Val ->
-                            io:format("Convert to type key: ~p val: ~p type: ~p~n",[Key, Val, AttrType]),
+                            %io:format("Convert to type key: ~p val: ~p type: ~p~n",[Key, Val, AttrType]),
                             boss_sql_lib:convert_possible_foreign_key(RetypedForeignKeys, Type, Key, Val, AttrType)
                     end
             end, boss_record_lib:attribute_names(Type))).
