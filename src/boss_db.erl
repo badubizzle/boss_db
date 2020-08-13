@@ -500,7 +500,7 @@ validate_record_types(Record) ->
                 case Attr of
                   id -> Acc;
                   _  ->
-                    Data = Module:get(Attr, Record),
+                    Data = proplists:get_value(Attr, Module:attributes(Record)),
                     GreatSuccess = case {Data, Type} of
                         {undefined, _} ->
                             true;
