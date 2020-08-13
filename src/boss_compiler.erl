@@ -173,8 +173,7 @@ handle_tokens(FileName, TokenInfo, ProcessedTokens) ->
     % has a bug that chokes on {Line, Col} locations in typed record
     % definitions
     TokensWithOnlyLineNumbers = flatten_token_locations(ProcessedTokens),
-    Version = 20,
-    {Forms, Errors}           = parse_tokens(TokensWithOnlyLineNumbers, FileName, Version),
+    {Forms, Errors}           = parse_tokens(TokensWithOnlyLineNumbers, FileName),
     parse_has_errors(TokenInfo, Forms, Errors).
 
 
@@ -199,14 +198,14 @@ transform_tokens(TransformFun,Tokens) when is_function(TransformFun) ->
     TransformFun(Tokens).
 
 
--spec parse_tokens([any()],'undefined' | [atom() | [any()] | char()], otp_version()) -> {[any()],[{_,_}]}.
-parse_tokens(Tokens, FileName, Version) ->
-    parse_tokens(Tokens, [], [], [], FileName, Version).
+-spec parse_tokens([any()],'undefined' | [atom() | [any()] | char()]) -> {[any()],[{_,_}]}.
+parse_tokens(Tokens, FileName) ->
+    parse_tokens(Tokens, [], [], [], FileName).
 
--spec parse_tokens([any()],[any()],[any()],[{_,{_,_,_}}],_, otp_version()) -> {[any()],[{_,_}]}.
-parse_tokens([], _, FormAcc, ErrorAcc, _, _Version) ->
+-spec parse_tokens([any()],[any()],[any()],[{_,{_,_,_}}],_) -> {[any()],[{_,_}]}.
+parse_tokens([], _, FormAcc, ErrorAcc, _) ->
     {lists:reverse(FormAcc), lists:reverse(ErrorAcc)};
-parse_tokens([{dot, _}=Token|Rest], TokenAcc, FormAcc, ErrorAcc, FileName, _Version) ->
+parse_tokens([{dot, _}=Token|Rest], TokenAcc, FormAcc, ErrorAcc, FileName) ->
     case erl_parse:parse_form(lists:reverse([Token|TokenAcc])) of
         {ok, {attribute, _, file, {NewFileName, _Line}} = AbsForm} ->
             parse_tokens(Rest, [], [AbsForm|FormAcc], ErrorAcc, NewFileName);
@@ -224,7 +223,7 @@ parse_tokens([{dot, _}=Token|Rest], TokenAcc, FormAcc, ErrorAcc, FileName, _Vers
             parse_tokens(Rest, [], [AbsForm|FormAcc], ErrorAcc, FileName);
         {error, ErrorInfo} ->
             parse_tokens(Rest, [], FormAcc, [{FileName, ErrorInfo}|ErrorAcc], FileName)
-    end.
+    end;
 parse_tokens([{eof, Location}], TokenAcc, FormAcc, ErrorAcc, FileName) ->
     parse_tokens([], TokenAcc, [{eof, Location}|FormAcc], ErrorAcc, FileName);
 parse_tokens([Token|Rest], TokenAcc, FormAcc, ErrorAcc, FileName) ->
