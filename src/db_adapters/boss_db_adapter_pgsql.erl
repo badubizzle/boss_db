@@ -23,8 +23,15 @@ init(Options) ->
     DBPassword  = proplists:get_value(db_password, Options, ""),
     DBDatabase  = proplists:get_value(db_database, Options, "test"),
     DBConfigure = proplists:get_value(db_configure, Options, []),
+
+    if
+        DBSsl == true orelse DBSsl == required ->
+            ssl:start();
+        true ->
+            ok
+    end,
     epgsql:connect(DBHost, DBUsername, DBPassword,
-        [{port, DBPort}, {database, DBDatabase} | DBConfigure]).
+                  [{port, DBPort}, {database, DBDatabase}, {ssl, DBSsl} | DBConfigure]).
 
 terminate(Conn) ->
     epgsql:close(Conn).
@@ -61,11 +68,11 @@ find(Conn, Id) when is_list(Id) ->
     end.
 
 find(Conn, Type, Conditions, Max, Skip, Sort, SortOrder) when is_atom(Type),
-							      is_list(Conditions),
+                                  is_list(Conditions),
                                                               is_integer(Max) orelse Max =:= all,
-							      is_integer(Skip),
+                                  is_integer(Skip),
                                                               is_atom(Sort),
-							      is_atom(SortOrder) ->
+                                  is_atom(SortOrder) ->
     case boss_record_lib:ensure_loaded(Type) of
         true ->
             Query = build_select_query(Type, Conditions, Max, Skip, Sort, SortOrder),
@@ -85,7 +92,7 @@ find(Conn, Type, Conditions, Max, Skip, Sort, SortOrder) when is_atom(Type),
                     {error, Reason}
             end;
         false ->
-	    {error, {module_not_loaded, Type}}
+        {error, {module_not_loaded, Type}}
     end.
 
 count(Conn, Type, Conditions) ->
@@ -131,10 +138,10 @@ save_record(Conn, Record) when is_tuple(Record) ->
     lager:notice("Saving Record ~p~n", [Record]),
     case RecordId of
         id ->
-            Record1		= maybe_populate_id_value(Record),
-            Type		= element(1, Record1),
-            {Query,Params}	= build_insert_query(Record1),
-	    Res			= epgsql:equery(Conn, Query, Params),
+            Record1        = maybe_populate_id_value(Record),
+            Type        = element(1, Record1),
+            {Query,Params}    = build_insert_query(Record1),
+        Res            = epgsql:equery(Conn, Query, Params),
             case Res of
                 {ok, _, _, [{Id}]} ->
                     {ok, Record1:set(id, lists:concat([Type, "-", id_value_to_string(Id)]))};
@@ -273,10 +280,10 @@ build_insert_query(Record) ->
 
 
 -spec(build_insert_sql(nonempty_string(),
-		       [nonempty_string(),...],
-		       [sql_param_value(),...],
-		       [nonempty_string(),...]) ->
-	     {iolist(), [sql_param_value()]}).
+               [nonempty_string(),...],
+               [sql_param_value(),...],
+               [nonempty_string(),...]) ->
+         {iolist(), [sql_param_value()]}).
 build_insert_sql(TableName, Attributes, Values, Params) ->
     {["INSERT INTO ", TableName, " (",
       string:join(Attributes, ", "),
@@ -293,17 +300,17 @@ build_insert_sql(TableName, Attributes, Values, Params) ->
 make_insert_attributes(Record, Type) ->
     AttributeColumns		= Record:database_columns(),
     lists:foldl(fun
-		    ({_, undefined}, Acc) -> Acc;
-		    ({'id', 'id'}, Acc)   -> Acc;
-		    ({'id', V}, {Attrs, Vals}) ->
-			DBColumn		= proplists:get_value('id', AttributeColumns),
-			{_, _, _, TableId}	= boss_sql_lib:infer_type_from_id(V),
-			{[DBColumn|Attrs], [TableId|Vals]};
-		    ({A, V}, {Attrs, Vals}) ->
-			DBColumn		= proplists:get_value(A, AttributeColumns),
-			Value                   = make_value(Type, A, V),
-			{[DBColumn|Attrs],
-			 [Value|Vals]}
+            ({_, undefined}, Acc) -> Acc;
+            ({'id', 'id'}, Acc)   -> Acc;
+            ({'id', V}, {Attrs, Vals}) ->
+            DBColumn        = proplists:get_value('id', AttributeColumns),
+            {_, _, _, TableId}    = boss_sql_lib:infer_type_from_id(V),
+            {[DBColumn|Attrs], [TableId|Vals]};
+            ({A, V}, {Attrs, Vals}) ->
+            DBColumn        = proplists:get_value(A, AttributeColumns),
+            Value                   = make_value(Type, A, V),
+            {[DBColumn|Attrs],
+             [Value|Vals]}
                 end, {[], []}, Record:attributes()).
 
 
