@@ -142,14 +142,14 @@ process_tokens([{'-',_N             } = T1,
                 {atom,_,_ModuleName } = T4,
                 {',',_              } = T5,
                 {'[',_              } = T6,
-                {var,_,'Id'         } = T7,
+                {var,_,'Id'=VarName } = T7,
                 {'::',_},
                 {atom,_,VarType},
                 {'(',_},
                 {')',_}|Rest]  = _T,
                TokenAcc, []) ->
    % lager:notice("Tokens ~p", [_T]) ,
-    _ = lager:info("Var Type ~p",[VarType]),
+    lager:info("Var Type ~p Name ~p~n",[VarType, VarName]),
     process_tokens(Rest, lists:reverse([T1, T2, T3, T4, T5, T6, T7], TokenAcc), [{'Id', VarType}]);
 
 process_tokens([{',',_}               = T1,
@@ -160,11 +160,14 @@ process_tokens([{',',_}               = T1,
                 {')',_} |Rest] = _T,
                TokenAcc, Acc) ->
 %    lager:notice("Tokens ~p", [_T]),
-    lager:info("Var Type ~p",[VarType]),
+    lager:info("Var Type ~p Name ~p~n",[VarType, VarName]),
     process_tokens(Rest, lists:reverse([T1, T2], TokenAcc), [{VarName, VarType}|Acc]);
 
 process_tokens([H|T], TokenAcc, Acc) ->
-    process_tokens(T, [H|TokenAcc], Acc).
+    process_tokens(T, [H|TokenAcc], Acc);
+
+process_tokens(Any, TokenAcc, Acc) ->
+    lager:info("Unhandled token: ~p~n~n", [[Any, TokenAcc, Acc]]).
 
 trick_out_forms(Forms, TokenInfo) ->
     trick_out_forms(Forms, [], TokenInfo).
