@@ -136,7 +136,7 @@ delete(Conn, Id) when is_list(Id) ->
 
 save_record(Conn, Record) when is_tuple(Record) ->
     Module = element(1, Record),
-    RecordId = Module:get(id, Record),
+    RecordId = boss_record:id(Record),
     lager:notice("Saving Record ~p~n", [Record]),
     case RecordId of
         id ->
