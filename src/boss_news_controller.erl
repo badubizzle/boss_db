@@ -198,10 +198,10 @@ handle_call({updated, Id, OldAttrs, NewAttrs}, _From, State0) ->
     AllWatchers         = IdWatchers ++ WildcardWatchers,
 
     OldRecord           = activate_record(Id, OldAttrs),
-    OldAttributes       = OldRecord:attributes(),
+    OldAttributes       = boss_record:attributes(OldRecord),
 
     NewRecord           = activate_record(Id, NewAttrs),
-    NewAttributes       = NewRecord:attributes(),
+    NewAttributes       = boss_record:attributes(NewRecord),
 
     NewState            = boss_news_controller_util:news_update_controller_inner_1(Id, State,
                                                                                    Module,

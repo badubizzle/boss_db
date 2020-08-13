@@ -34,7 +34,8 @@ query_riak_socket(Id, Type, _Socket = {ok, Res} ) ->
     AttributeTypes	= boss_record_lib:attribute_types(Type),
     Record              = get_record_from_riak(Type, ConvertedData,
 					       AttributeTypes),
-    Record:set(id, Id);
+    Module = boss_record:module(Record),
+    Module:set(id, Id, Record);
 query_riak_socket(_Id, _Type, _Socket = {error, Reason} ) ->
     {error, Reason}.
 
@@ -109,16 +110,16 @@ delete(Conn, Id) ->
     {_Type, Bucket, Key} = infer_type_from_id(Id),
     ok = riakc_pb_socket:delete(Conn, Bucket, Key).
 
-%The call riakc_obj:new(Bucket::binary(),'undefined',PropList::[{binary(),_}]) 
+%The call riakc_obj:new(Bucket::binary(),'undefined',PropList::[{binary(),_}])
 % will never return since the success typing is
-% ('undefined' | binary(),'undefined' | binary(),'undefined' | binary()) -> 
-% {'riakc_obj','undefined' | binary(),'undefined' | binary(),'undefined',[],'undefined','undefined' | binary()} and the contract is 
+% ('undefined' | binary(),'undefined' | binary(),'undefined' | binary()) ->
+% {'riakc_obj','undefined' | binary(),'undefined' | binary(),'undefined',[],'undefined','undefined' | binary()} and the contract is
 % (bucket(),key(),value()) -> riakc_obj()
 save_record(Conn, Record) ->
     Type = element(1, Record),
     Bucket = list_to_binary(type_to_bucket_name(Type)),
-    PropList = [{riak_search_encode_key(K), riak_search_encode_value(V)} || {K, V} <- Record:attributes(), K =/= id],
-    RiakKey = case Record:id() of
+    PropList = [{riak_search_encode_key(K), riak_search_encode_value(V)} || {K, V} <- boss_record:attributes(Record), K =/= id],
+    RiakKey = case boss_record:id(Record) of
         id -> % New entry
 	    GUID        = uuid:to_string(uuid:uuid4()),
             O		= riakc_obj:new(Bucket, GUID, PropList),
@@ -133,7 +134,7 @@ save_record(Conn, Record) ->
             ok		= riakc_pb_socket:put(Conn, O2),
             Key
     end,
-    {ok, Record:set(id, lists:concat([Type, "-", RiakKey]))}.
+    {ok, Type:set(id, lists:concat([Type, "-", RiakKey]), Record)}.
 
 % These 2 functions are not part of the behaviour but are required for
 % tests to pass

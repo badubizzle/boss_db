@@ -23,20 +23,20 @@ init(Options) ->
     AccessKey 	= proplists:get_value(db_username, Options, os:getenv("AWS_ACCESS_KEY_ID")),
     SecretKey	= proplists:get_value(db_password, Options, os:getenv("AWS_SECRET_ACCESS_KEY")),
     Endpoint    = proplists:get_value(db_host, Options, "dynamodb.us-east-1.amazonaws.com"),
-    
+
     %% startup dependencies.  some of these may have already been started, but that's ok.
     inets:start(),
     ssl:start(),
     %%lager:start(),
     application:start(ibrowse),
-    
-    
+
+
     %% init initial credentials.  note that these will be refeshed automatically as needed
     ddb_iam:credentials(AccessKey, SecretKey),
-    {'ok', Key, Secret, Token} = ddb_iam:token(129600), 
+    {'ok', Key, Secret, Token} = ddb_iam:token(129600),
     %% 129600 is the lifetime duration for the token
     ddb:credentials(Key, Secret, Token, Endpoint),
-    
+
     init_tables(Options),
     {ok, undefined}.
 
@@ -52,11 +52,11 @@ find(_Conn, Id) when is_list(Id) ->
 			{error, Error}
 	end.
 
-find(_Conn, Type, Conditions, Max, Skip, Sort, SortOrder) 
+find(_Conn, Type, Conditions, Max, Skip, Sort, SortOrder)
   when is_atom(Type), is_list(Conditions),
        is_integer(Max) orelse Max =:= all, is_integer(Skip),
        is_atom(Sort), is_atom(SortOrder) ->
-    
+
 	case boss_record_lib:ensure_loaded(Type) of
 		true ->
 			DDB_cond	= convert_conditions(Conditions),
@@ -92,7 +92,7 @@ delete(_Conn, Id) when is_list(Id) ->
 
 
 save_record(_Conn, Record) when is_tuple(Record) ->
-	case Record:id() of
+	case boss_record:id(Record) of
 		id ->
 			create_new(Record);
 		_Existing ->
@@ -198,7 +198,7 @@ init_meta_entry(Model) when is_binary(Model)->
 
 create_new(Record) ->
 	Model = element(1, Record),
-	SavedRec = Record:set(id, get_new_unique_id(Model)),
+	SavedRec = Model:set(id, get_new_unique_id(Model), Record),
 	Attrs = SavedRec:attributes(),
 	%% WEIRD: dynamodb does not allow empty strings as values, don't store them.
 	Fields = [ {atom_to_binary(K,latin1), val_to_binary(V), type_of(V)} || {K, V} <- Attrs, not_empty(V) ],
@@ -207,8 +207,8 @@ create_new(Record) ->
 
 update_existing(Record) ->
 	Model  = element(1, Record),
-	Keys   = ddb:key_value(list_to_binary(Record:id()), 'string'),
-	Attrs  = Record:attributes(),
+	Keys   = ddb:key_value(list_to_binary(boss_record:id(Record)), 'string'),
+	Attrs  = boss_record:attributes(Record),
 	Fields = [ {atom_to_binary(K, latin1), val_to_binary(V), type_of(V), 'put'} ||
 		     {K, V} <- Attrs, not_empty(V), K /= id],
 	_Res    = ddb:update(atom_to_binary(Model, latin1), Keys, Fields),

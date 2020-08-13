@@ -47,12 +47,12 @@ handle_call({incr, Id, Amount}, _From, [{Dict, IdCounter}|OldState]) ->
 handle_call({save_record, Record}, _From, [{Dict, IdCounter}|OldState]) ->
     Type = element(1, Record),
     TypeString = atom_to_list(Type),
-    {Id, IdCounter1} = case Record:id() of
+    {Id, IdCounter1} = case boss_record:id(Record) of
         id -> case boss_sql_lib:keytype(Record) of
                   uuid   -> {lists:concat([Type, "-", uuid:to_string(uuid:uuid4())]), IdCounter};
                   _      -> {lists:concat([Type, "-", IdCounter]), IdCounter + 1}
               end;
-        ExistingId -> 
+        ExistingId ->
             case boss_sql_lib:keytype(Record) of
                 uuid -> {ExistingId, IdCounter};
                 _    ->
@@ -71,8 +71,8 @@ handle_call({save_record, Record}, _From, [{Dict, IdCounter}|OldState]) ->
                 {Attr, calendar:now_to_datetime(Val)};
             (Other) ->
                 Other
-        end, Record:attributes()),
-    NewRecord = Record:set(NewAttributes),
+        end, Type:attributes(Record)),
+    NewRecord = Type:set(NewAttributes, Record),
     {reply, NewRecord, [{dict:store(Id, NewRecord, Dict), IdCounter1}|OldState]};
 handle_call(push, _From, [{Dict, IdCounter}|_] = State) ->
     {reply, ok, [{Dict, IdCounter}|State]};
@@ -97,7 +97,7 @@ handle_info(_Info, State) ->
 
 
 do_find(Dict, Type, Conditions, Max, Skip, SortBy, SortOrder) ->
-    Tail = lists:nthtail(Skip, 
+    Tail = lists:nthtail(Skip,
         lists:sort(fun(RecordA, RecordB) ->
                     AttributeA = sortable_attribute(RecordA, SortBy),
                     AttributeB = sortable_attribute(RecordB, SortBy),
@@ -115,7 +115,7 @@ do_find(Dict, Type, Conditions, Max, Skip, SortBy, SortOrder) ->
                                 match_cond(Record, Conditions);
                             (_Id, _) ->
                                 false
-                        end, Dict))))), 
+                        end, Dict))))),
     case Max of all -> Tail; _ -> lists:sublist(Tail, Max) end.
 
 match_cond(_Record, []) ->

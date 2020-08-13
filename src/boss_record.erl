@@ -1,5 +1,5 @@
 -module(boss_record).
--export([new/2, new_from_json/2]).
+-export([new/2, new_from_json/2, id/1, attributes/1, module/1]).
 
 -ifdef(TEST).
 -include_lib("proper/include/proper.hrl").
@@ -8,6 +8,14 @@
 new(Model, Attributes) ->
     DummyRecord = boss_record_lib:dummy_record(Model),
     Model:set(DummyRecord, Attributes).
+
+id(Record)->
+    boss_record_lib:get_record_id(Record).
+
+attributes(Record)->
+    boss_record_lib:get_record_attributes(Record).
+module(Record)->
+    boss_record_lib:get_record_module(Record).
 
 -spec(new_from_json(module(), jsx:json_term()) -> tuple()).
 new_from_json(Model, JSON) ->

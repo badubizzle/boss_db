@@ -311,7 +311,7 @@ find_list(Type, Include, Cmd, From, Prefix, State, Key) ->
             IncludedRecords     = find_list_records(Include, From, State,
                                                        Res, BelongsToTypes),
             lists:map(fun(Rec) ->
-                        boss_cache:set(Prefix, Rec:id(), Rec, State#state.cache_ttl)
+                        boss_cache:set(Prefix, boss_record:id(Rec), Rec, State#state.cache_ttl)
                       end, IncludedRecords),
             boss_cache:set(Prefix, Key, Res, State#state.cache_ttl),
             WatchString         = lists:concat([inflector:pluralize(atom_to_list(Type)),

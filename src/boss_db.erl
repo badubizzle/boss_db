@@ -401,7 +401,8 @@ save_record(Record) ->
 save_record(Record, Timeout) ->
     case validate_record(Record) of
         ok ->
-            RecordId = Record:id(),
+            Module = element(1, Record),
+            RecordId = Module:get(id, Record),
             {IsNew, OldRecord} = if
                 RecordId =:= 'id' ->
                     {true, Record};

@@ -227,7 +227,7 @@ delete(Conn, Id) when is_list(Id) ->
 save_record(Conn, Record) when is_tuple(Record) ->
     Type	= element(1, Record),
     Collection	= type_to_collection(Type),
-    Res		= case Record:id() of
+    Res		= case boss_record:id(Record) of
 		      id ->
 			  execute_save_record(Conn, Record, Collection);
 		      DefinedId when is_list(DefinedId) ->
@@ -235,7 +235,7 @@ save_record(Conn, Record) when is_tuple(Record) ->
 		  end,
     case Res of
         {ok, ok}			-> {ok, Record};
-        {ok, Id}			-> {ok, Record:set(id, unpack_id(Type, Id))};
+        {ok, Id}			-> {ok, Type:set(id, unpack_id(Type, Id), Record)};
         {failure, Reason}		-> {error, Reason}
 
     end.
@@ -247,7 +247,7 @@ execute_save_record(Conn, Record, Collection, DefinedId) ->
 			     ({K,V}) ->
 				 PackedVal = pack_value(K, V),
 				 {K, PackedVal}
-                         end, Record:attributes()),
+                         end, boss_record:attributes(Record)),
     Doc = proplist_to_tuple(PropList),
     execute(Conn, fun() ->
 			  mongo:repsert(Collection, {'_id', PackedId}, Doc)
@@ -265,7 +265,7 @@ execute_save_record(Conn, Record, Collection) ->
 			       ({K,V}, Acc) ->
 				   PackedVal = pack_value(K, V),
 				   [{K, PackedVal}|Acc]
-                           end, [], Record:attributes()),
+                           end, [], boss_record:attributes(Record)),
     Doc = proplist_to_tuple(PropList),
     execute(Conn, fun() ->
 			  mongo:insert(Collection, Doc)

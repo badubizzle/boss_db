@@ -10,7 +10,10 @@
         database_table/1,
 	belongs_to_types/1,
         convert_value_to_type/2,
-        ensure_loaded/1
+        ensure_loaded/1,
+        get_record_module/1,
+        get_record_id/1,
+        get_record_attributes/1
     ]).
 -ifdef(TEST).
 -compile(export_all).
@@ -38,13 +41,21 @@ run_before_hooks(Record, true) ->
 run_before_hooks(Record, false) ->
     run_hooks(Record, element(1, Record), before_update).
 
+get_record_module(Record)->
+    element(1, Record).
+get_record_id(Record)->
+    Module = element(1, Record),
+    Module:get(id, Record).
+get_record_attributes(Record)->
+    Module = element(1, Record),
+    Module:attributes(Record).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_after_hooks(_UnsavedRecord, SavedRecord, true) ->
-    boss_news:created(SavedRecord:id(), SavedRecord:attributes()),
+    boss_news:created(get_record_id(SavedRecord), get_record_attributes(SavedRecord)),
     run_hooks(SavedRecord, element(1, SavedRecord), after_create);
 run_after_hooks(UnsavedRecord, SavedRecord, false) ->
-    boss_news:updated(SavedRecord:id(), UnsavedRecord:attributes(), SavedRecord:attributes()),
+    boss_news:updated(get_record_id(SavedRecord), get_record_attributes(UnsavedRecord), get_record_attributes(SavedRecord)),
     run_hooks(SavedRecord, element(1, SavedRecord), after_update).
 
 

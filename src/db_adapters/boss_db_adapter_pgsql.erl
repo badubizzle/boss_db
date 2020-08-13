@@ -135,7 +135,8 @@ delete(Conn, Id) when is_list(Id) ->
     end.
 
 save_record(Conn, Record) when is_tuple(Record) ->
-    RecordId = Record:id(),
+    Module = element(1, Record),
+    RecordId = Module:get(id, Record),
     lager:notice("Saving Record ~p~n", [Record]),
     case RecordId of
         id ->
@@ -145,7 +146,7 @@ save_record(Conn, Record) when is_tuple(Record) ->
         Res            = epgsql:equery(Conn, Query, Params),
             case Res of
                 {ok, _, _, [{Id}]} ->
-                    {ok, Record1:set(id, lists:concat([Type, "-", id_value_to_string(Id)]))};
+                    {ok, Module:set(id, lists:concat([Type, "-", id_value_to_string(Id)]), Record)};
                 {error, Reason} -> {error, Reason}
             end;
         Defined when is_list(Defined) ->
@@ -221,7 +222,7 @@ maybe_populate_id_value(Record) ->
 -spec(maybe_populate_id_value(tuple(), uuid|id) -> tuple()).
 maybe_populate_id_value(Record, uuid) ->
     Type = element(1, Record),
-    Record:set(id, lists:concat([Type, "-", uuid:to_string(uuid:uuid4())]));
+    Type:set(id, lists:concat([Type, "-", uuid:to_string(uuid:uuid4())]), Record);
 maybe_populate_id_value(Record, id) ->
     Record;
 maybe_populate_id_value(Record, serial) ->
@@ -299,7 +300,7 @@ build_insert_sql(TableName, Attributes, Values, Params) ->
 %% Two lists should be the same length
 
 make_insert_attributes(Record, Type) ->
-    AttributeColumns		= Record:database_columns(),
+    AttributeColumns		= Type:database_columns(Record),
     lists:foldl(fun
             ({_, undefined}, Acc) -> Acc;
             ({'id', 'id'}, Acc)   -> Acc;
@@ -312,7 +313,7 @@ make_insert_attributes(Record, Type) ->
             Value                   = make_value(Type, A, V),
             {[DBColumn|Attrs],
              [Value|Vals]}
-                end, {[], []}, Record:attributes()).
+                end, {[], []}, Type:attributes(Record)).
 
 
 
@@ -328,8 +329,9 @@ make_value(Type, A, V) ->
     end.
 
 build_update_query(Record) ->
-    {Type, TableName, IdColumn, Id} = boss_sql_lib:infer_type_from_id(Record:id()),
-    AttributeColumns = Record:database_columns(),
+    Module = element(1, Record),
+    {Type, TableName, IdColumn, Id} = boss_sql_lib:infer_type_from_id(Module:get(id, Record)),
+    AttributeColumns = Module:database_columns(Record),
     {Attributes, Values} = lists:foldl(fun
             ({id, _}, Acc) -> Acc;
             ({A, V}, {Attrs, Vals}) ->
@@ -344,7 +346,7 @@ build_update_query(Record) ->
                         V
                 end,
                 {[DBColumn|Attrs], [Value|Vals]}
-        end, {[], []}, Record:attributes()),
+        end, {[], []}, Type:attributes(Record)),
     {Updates,_}=lists:mapfoldl(fun(E,Index)->{E++"=$"++integer_to_list(Index),1+Index} end,1,Attributes),
     {["UPDATE ", TableName, " SET ", string:join(Updates, ", "),
         " WHERE ", IdColumn, " = ", pack_value(Id)],Values}.

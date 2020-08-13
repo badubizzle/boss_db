@@ -79,13 +79,14 @@ delete(Conn, Id) when is_list(Id) ->
 
 save_record(Conn, Record) when is_tuple(Record) ->
     Type = element(1, Record),
-    Id = case Record:id() of
+    Id = case boss_record:id(Record) of
         id ->
             atom_to_list(Type) ++ "-" ++ binary_to_list(principe_table:genuid(Conn));
         Defined when is_list(Defined) ->
             Defined
     end,
-    RecordWithId = Record:set(id, Id),
+    Module = boss_record:module(Record),
+    RecordWithId = Module:set(id, Id, Record),
     PackedRecord = pack_record(RecordWithId, Type),
 
     Result = principe_table:put(Conn, list_to_binary(Id), PackedRecord),
@@ -98,7 +99,7 @@ save_record(Conn, Record) when is_tuple(Record) ->
 
 pack_record(RecordWithId, Type) ->
     Columns = lists:map(fun
-            (Attr) -> 
+            (Attr) ->
                 Val = RecordWithId:Attr(),
                 {attribute_to_colname(Attr), pack_value(Val)}
         end, RecordWithId:attribute_names()),
