@@ -7,10 +7,10 @@
 -export([
         migrate/1,
         migrate/2,
-        find/1, 
-        find/2, 
-        find/3, 
-        find/4, 
+        find/1,
+        find/2,
+        find/3,
+        find/4,
         find_by_sql/3,
         find_by_sql/2,
         find_first/1,
@@ -24,13 +24,13 @@
         count/1,
         count/2,
         count/3,
-        counter/1, 
-        counter/2, 
-        incr/1, 
-        incr/2, 
-        incr/3, 
-        delete/1, 
-        delete/2, 
+        counter/1,
+        counter/2,
+        incr/1,
+        incr/2,
+        incr/3,
+        delete/1,
+        delete/2,
         push/0,
         push/1,
         pop/0,
@@ -49,8 +49,8 @@
         transaction/1,
         transaction/2,
         mock_transaction/1,
-        save_record/1, 
-        save_record/2, 
+        save_record/1,
+        save_record/2,
         validate_record/1,
         validate_record/2,
         validate_record_types/1,
@@ -494,12 +494,13 @@ validate_record(Record, IsNew) ->
 %% @doc Validate the parameter types of the given BossRecord without saving it
 %% to the database.
 validate_record_types(Record) ->
+    Module = element(1, Record),
     Errors = lists:foldl(fun
             ({Attr, Type}, Acc) ->
                 case Attr of
                   id -> Acc;
                   _  ->
-                    Data = Record:Attr(),
+                    Data = Module:get(Attr, Record),
                     GreatSuccess = case {Data, Type} of
                         {undefined, _} ->
                             true;
@@ -534,7 +535,7 @@ validate_record_types(Record) ->
                             [lists:concat(["Invalid data type for ", Attr])|Acc]
                     end
                   end
-        end, [], Record:attribute_types()),
+        end, [], Module:attribute_types(Record)),
     case Errors of
         [] -> ok;
         _ -> {error, Errors}
