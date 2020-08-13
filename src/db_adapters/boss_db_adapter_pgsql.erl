@@ -23,6 +23,7 @@ init(Options) ->
     DBPassword  = proplists:get_value(db_password, Options, ""),
     DBDatabase  = proplists:get_value(db_database, Options, "test"),
     DBConfigure = proplists:get_value(db_configure, Options, []),
+    DBSsl = proplists:get_value(ssl, Options, false),
 
     if
         DBSsl == true orelse DBSsl == required ->
