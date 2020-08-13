@@ -51,8 +51,13 @@ is_foreign_key(Type, Key) when is_atom(Key) ->
 	case (length(KeyTokens) > 1 andalso LastToken == "id") of
 		true ->
             Module = list_to_atom(join(lists:reverse(tl(lists:reverse(KeyTokens))), "_")),
-            DummyRecord = boss_record_lib:dummy_record(Type),
-            lists:member(Module, Module:belongs_to_names(DummyRecord));
+            try
+                DummyRecord = boss_record_lib:dummy_record(Type),
+                lists:member(Module, Module:belongs_to_names(DummyRecord))
+            catch
+                _:_ ->
+                    false
+            end;
 		false -> false
 	end;
 is_foreign_key(_Type, _Key) -> false.
