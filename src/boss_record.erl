@@ -7,14 +7,17 @@
 
 new(Model, Attributes) ->
     DummyRecord = boss_record_lib:dummy_record(Model),
-    DummyRecord:set(Attributes).
+    Model:set(DummyRecord, Attributes).
 
 -spec(new_from_json(module(), jsx:json_term()) -> tuple()).
 new_from_json(Model, JSON) ->
     DummyRecord = boss_record_lib:dummy_record(Model),
-    Attributes  = DummyRecord:attribute_names(),
-    Set         = set_attribute(_,[{id,id}] ++ JSON, _),
-    lists:foldl(Set, DummyRecord, Attributes).
+    Attributes  = Model:attribute_names(DummyRecord),
+    % Set         = set_attribute([{id,id}], JSON, DummyRecord),
+    % set_attribute(_,[{id,id}] ++ JSON, _),
+    lists:foldl(fun (FieldName, Acc) ->
+        set_attribute(FieldName, JSON, Acc)
+    end, DummyRecord, Attributes).
 
 set_attribute(FieldName, JSON, Model) ->
     BName = atom_to_binary(FieldName,'utf8'),
