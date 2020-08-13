@@ -206,7 +206,7 @@ parse_tokens(Tokens, FileName, Version) ->
 -spec parse_tokens([any()],[any()],[any()],[{_,{_,_,_}}],_, otp_version()) -> {[any()],[{_,_}]}.
 parse_tokens([], _, FormAcc, ErrorAcc, _, _Version) ->
     {lists:reverse(FormAcc), lists:reverse(ErrorAcc)};
-parse_tokens([{dot, _}=Token|Rest], TokenAcc, FormAcc, ErrorAcc, FileName, Version) ->
+parse_tokens([{dot, _}=Token|Rest], TokenAcc, FormAcc, ErrorAcc, FileName, _Version) ->
     case erl_parse:parse_form(lists:reverse([Token|TokenAcc])) of
         {ok, {attribute, _, file, {NewFileName, _Line}} = AbsForm} ->
             parse_tokens(Rest, [], [AbsForm|FormAcc], ErrorAcc, NewFileName);
