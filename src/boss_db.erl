@@ -401,8 +401,7 @@ save_record(Record) ->
 save_record(Record, Timeout) ->
     case validate_record(Record) of
         ok ->
-            Module = element(1, Record),
-            RecordId = Module:get(id, Record),
+            RecordId = proplists:get_value(id, boss_record:attributes(Record)),
             {IsNew, OldRecord} = if
                 RecordId =:= 'id' ->
                     {true, Record};
