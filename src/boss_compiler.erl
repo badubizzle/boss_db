@@ -173,7 +173,8 @@ handle_tokens(FileName, TokenInfo, ProcessedTokens) ->
     % has a bug that chokes on {Line, Col} locations in typed record
     % definitions
     TokensWithOnlyLineNumbers = flatten_token_locations(ProcessedTokens),
-    {Forms, Errors}           = parse_tokens(TokensWithOnlyLineNumbers, FileName),
+    Version = 20,
+    {Forms, Errors}           = parse_tokens(TokensWithOnlyLineNumbers, FileName, Version),
     parse_has_errors(TokenInfo, Forms, Errors).
 
 
@@ -223,7 +224,7 @@ parse_tokens([{dot, _}=Token|Rest], TokenAcc, FormAcc, ErrorAcc, FileName, Versi
             parse_tokens(Rest, [], [AbsForm|FormAcc], ErrorAcc, FileName);
         {error, ErrorInfo} ->
             parse_tokens(Rest, [], FormAcc, [{FileName, ErrorInfo}|ErrorAcc], FileName)
-    end;
+    end.
 parse_tokens([{eof, Location}], TokenAcc, FormAcc, ErrorAcc, FileName) ->
     parse_tokens([], TokenAcc, [{eof, Location}|FormAcc], ErrorAcc, FileName);
 parse_tokens([Token|Rest], TokenAcc, FormAcc, ErrorAcc, FileName) ->
