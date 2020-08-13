@@ -307,7 +307,7 @@ find_list(Type, Include, Cmd, From, Prefix, State, Key) ->
     case is_list(Res) of
         true ->
             DummyRecord		= boss_record_lib:dummy_record(Type),
-            BelongsToTypes	= DummyRecord:belongs_to_types(),
+            BelongsToTypes	= Type:belongs_to_types(DummyRecord),
             IncludedRecords     = find_list_records(Include, From, State,
                                                        Res, BelongsToTypes),
             lists:map(fun(Rec) ->
