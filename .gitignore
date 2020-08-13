@@ -13,3 +13,4 @@ rebar3.crashdump
 rebar.lock
 .project
 .idea
+boss_db.iml
