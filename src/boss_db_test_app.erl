@@ -67,7 +67,7 @@ run_tests_inner() ->
         ParentModelModule = boss_record:module(ParentModel),
         {ok, SavedParentModel} = ParentModelModule:save(ParentModel),
         Model = boss_db_test_model:new(id, ModelText,
-          {{1776, 7, 4}, {0, 0, 0}}, true, 42, 3.14159, SavedParentModel:id()),
+          {{1776, 7, 4}, {0, 0, 0}}, true, 42, 3.14159, boss_record:id(SavedParentModel)),
         Module = boss_record:module(Model),
         {ok, SavedModel} = Module:save(Model),
         {SavedModel, SavedParentModel}
