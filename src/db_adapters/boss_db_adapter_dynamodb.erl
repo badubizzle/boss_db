@@ -143,7 +143,8 @@ init_table(Model, Options) when is_binary(Model) ->
     WriteCap		= proplists:get_value(ModelAtom, LocalWriteCaps, GlobalWriteCap),
 
     [PrimaryKey]	= proplists:get_value(primary_key, ModelAttributes, [id]),
-    PrimaryKeyType	= proplists:get_value(PrimaryKey, Dummy:attribute_types(), 'string'),
+	Module = boss_record:module(Dummy),
+    PrimaryKeyType	= proplists:get_value(PrimaryKey, Module:attribute_types(Dummy), 'string'),
 
     KeyType		= proplists:get_value(range_key, ModelAtom:module_info(attributes)),
 
@@ -158,8 +159,9 @@ init_table(Model, Options) when is_binary(Model) ->
 lookup_key_type(_Dummy, PrimaryKey, PrimaryKeyType, undefined) ->
     ddb:key_type(atom_to_binary(PrimaryKey, latin1), PrimaryKeyType);
 lookup_key_type(Dummy, PrimaryKey, PrimaryKeyType, [RangeKey]) ->
+	Module = boss_record:module(Dummy),
     RangeKeyType = convert_type_to_ddb(
-		     proplists:get_value(RangeKey, Dummy:attribute_types())),
+		     proplists:get_value(RangeKey, Module:attribute_types(Dummy))),
     ddb:key_type(atom_to_binary(PrimaryKey, latin1),
 		 PrimaryKeyType,
 		 atom_to_binary(RangeKey, latin1),
