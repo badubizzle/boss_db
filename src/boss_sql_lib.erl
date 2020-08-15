@@ -14,7 +14,8 @@ keytype(Module) when is_atom(Module) ->
 keytype(Module) when is_list(Module) ->
     proplists:get_value(id, boss_record_lib:attribute_types(list_to_atom(Module)), ?DEFAULT_KEYTYPE);
 keytype(Record) when is_tuple(Record) andalso is_atom(element(1, Record)) ->
-    proplists:get_value(id, Record:attribute_types(), ?DEFAULT_KEYTYPE).
+    Module = boss_record:module(Record),
+    proplists:get_value(id, Module:attribute_types(Record), ?DEFAULT_KEYTYPE).
 
 infer_type_from_id(Id) when is_list(Id) ->
     [Type, TableId] = re:split(Id, "-", [{return, list}, {parts, 2}]),
