@@ -45,7 +45,7 @@ get_record_module(Record)->
     element(1, Record).
 get_record_id(Record)->
     Module = element(1, Record),
-    Module:get(id, Record).
+    Module:id(Record).
 get_record_attributes(Record)->
     Module = element(1, Record),
     Module:attributes(Record).
