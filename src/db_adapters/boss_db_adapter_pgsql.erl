@@ -330,7 +330,7 @@ make_value(Type, A, V) ->
 
 build_update_query(Record) ->
     Module = element(1, Record),
-    {Type, TableName, IdColumn, Id} = boss_sql_lib:infer_type_from_id(Module:get(id, Record)),
+    {Type, TableName, IdColumn, Id} = boss_sql_lib:infer_type_from_id(Module:id(Record)),
     AttributeColumns = Module:database_columns(Record),
     {Attributes, Values} = lists:foldl(fun
             ({id, _}, Acc) -> Acc;
